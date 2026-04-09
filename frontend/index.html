@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Virtual Lab Manager</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+<div class="app">
+
+  <h1>Virtual Lab Manager</h1>
+
+  <div class="card">
+    <h2>Create</h2>
+
+    <input id="c_sessionId" placeholder="Session ID">
+    <input id="c_studentId" placeholder="Student ID">
+    <input id="c_labModule" placeholder="Lab Module">
+    <input id="c_slot" placeholder="Experiment Slot">
+
+    <select id="c_status">
+      <option value="scheduled">Scheduled</option>
+      <option value="completed">Completed</option>
+      <option value="cancelled">Cancelled</option>
+    </select>
+
+    <button onclick="createSession()">Create</button>
+    <div id="createMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2>Search</h2>
+
+    <input id="s_sessionId" placeholder="Session ID">
+    <input id="s_studentId" placeholder="Student ID">
+
+    <button onclick="searchSession()">Search</button>
+
+    <div id="result"></div>
+  </div>
+
+  <div class="card">
+    <h2>Update</h2>
+
+    <p id="selectedSession"></p>
+
+    <input id="u_labModule" placeholder="New Lab Module">
+    <input id="u_slot" placeholder="New Slot">
+
+    <button onclick="updateSession()">Update</button>
+
+    <div id="updateMsg"></div>
+  </div>
+
+</div>
+
+<script>
+let currentSession = null;
+
+async function createSession() {
+  const res = await fetch("http://localhost:5000/api/sessions", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      sessionId: c_sessionId.value,
+      studentId: c_studentId.value,
+      labModule: c_labModule.value,
+      experimentSlot: c_slot.value,
+      status: c_status.value
+    })
+  });
+
+  const data = await res.json();
+  createMsg.innerText = data.message || data.error;
+}
+
+async function searchSession() {
+  const res = await fetch(`http://localhost:5000/api/sessions/${s_sessionId.value}/${s_studentId.value}`);
+  const data = await res.json();
+
+  if (data.message) {
+    result.innerText = data.message;
+    return;
+  }
+
+  currentSession = data;
+
+  selectedSession.innerText =
+    `Editing: ${data.sessionId} | ${data.studentId}`;
+
+  result.innerText = JSON.stringify(data, null, 2);
+}
+
+async function updateSession() {
+
+  if (!currentSession) {
+    updateMsg.innerText = "Search first";
+    return;
+  }
+
+  const res = await fetch(
+    `http://localhost:5000/api/sessions/${currentSession.sessionId}/${currentSession.studentId}`,
+    {
+      method: "PUT",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        labModule: u_labModule.value,
+        experimentSlot: u_slot.value
+      })
+    }
+  );
+
+  const data = await res.json();
+
+  updateMsg.innerText = data.message || data.error;
+
+  await searchSession();
+}
+</script>
+
+</body>
+</html>
